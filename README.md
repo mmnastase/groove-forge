@@ -2,6 +2,15 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## Documentation
+
+Docs are available under `docs/` and are GitHub Pages friendly (Jekyll).
+
+- Local preview with a Jekyll install: `bundle exec jekyll serve --source docs --livereload`
+- GitHub Pages: set the repository Pages source to the `docs/` folder.
+
+Entry: `docs/index.md`.
+
 ## Available Scripts
 
 In the project directory, you can run:

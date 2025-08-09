@@ -24,7 +24,43 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>React App</title>
+    <title>GrooveForge</title>
+    <meta name="description" content="GrooveForge – Craft beats, remix ideas, and explore features with a beautiful, modern experience." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                50: '#f5e7ff',
+                100: '#ead0ff',
+                200: '#d2a6ff',
+                300: '#b977ff',
+                400: '#a354ff',
+                500: '#8b2aff',
+                600: '#731bdc',
+                700: '#5d18ad',
+                800: '#4b1789',
+                900: '#3d156e',
+              },
+            },
+          }
+        }
+      }
+    </script>
+    <style>
+      @keyframes blob {
+        0%, 100% { transform: translate(0px, 0px) scale(1); }
+        33% { transform: translate(30px, -50px) scale(1.1); }
+        66% { transform: translate(-20px, 20px) scale(0.9); }
+      }
+      @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

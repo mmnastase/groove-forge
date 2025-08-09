@@ -1,0 +1,22 @@
+theme: minima
+title: GrooveForge Docs
+description: Documentation for the GrooveForge app
+markdown: kramdown
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+baseurl: "/docs"
+url: ""
+permalink: pretty
+nav:
+  - title: Home
+    url: /
+  - title: User Guide
+    url: /user-guide
+  - title: Builder
+    url: /builder
+  - title: Widgets
+    url: /widgets/
+  - title: Releases
+    url: /releases
+
