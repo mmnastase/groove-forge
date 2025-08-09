@@ -5,8 +5,9 @@ markdown: kramdown
 plugins:
   - jekyll-feed
   - jekyll-seo-tag
-baseurl: "/docs"
-url: ""
+# For GitHub project pages: https://<user>.github.io/<repo>/
+baseurl: "/groove-forge"
+url: "https://mmnastase.github.io"
 permalink: pretty
 nav:
   - title: Home

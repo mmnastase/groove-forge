@@ -8,6 +8,7 @@ Docs are available under `docs/` and are GitHub Pages friendly (Jekyll).
 
 - Local preview with a Jekyll install: `bundle exec jekyll serve --source docs --livereload`
 - GitHub Pages: set the repository Pages source to the `docs/` folder.
+- Live site: https://mmnastase.github.io/groove-forge/
 
 Entry: `docs/index.md`.
 

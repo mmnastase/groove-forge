@@ -10,16 +10,16 @@ Welcome to the GrooveForge documentation site.
 Use the links below to explore guides and references.
 
 ## Getting Started
-- [User Guide](./user-guide.md)
+- [User Guide]({{ site.baseurl }}/user-guide)
 
 ## Core
-- [Builder](./builder.md)
+- [Builder]({{ site.baseurl }}/builder)
 
 ## Widgets
-- [Timing](./widgets/timing.md)
-- [Metronome](./widgets/metronome.md)
+- [Timing]({{ site.baseurl }}/widgets/timing)
+- [Metronome]({{ site.baseurl }}/widgets/metronome)
 
 ## Releases
-- [Release Notes](./releases.md)
+- [Release Notes]({{ site.baseurl }}/releases)
 
 
