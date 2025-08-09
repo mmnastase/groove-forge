@@ -1,5 +1,6 @@
 import React from 'react';
 import { useProjectTiming } from '../../contexts/ProjectTimingContext';
+import { useTransportOptional } from '../../contexts/TransportContext';
 
 function useMetronome(bpm: number, numerator: number, denominator: number) {
   const audioContextRef = React.useRef<AudioContext | null>(null);
@@ -13,7 +14,8 @@ function useMetronome(bpm: number, numerator: number, denominator: number) {
   const [secondsPerStep, setSecondsPerStep] = React.useState(60 / bpm / 4);
   const [currentBeat, setCurrentBeat] = React.useState(0);
   const [accentLevels, setAccentLevels] = React.useState<number[]>(() => {
-    return Array.from({ length: 16 }, () => 0).map((v, i) => (i % 4 === 0 ? 1 : 0));
+    // 0: silent, 1: subtle, 2: medium, 3: strong
+    return Array.from({ length: 16 }, () => 0).map((_, i) => (i % 4 === 0 ? 2 : 0));
   });
   const accentLevelsRef = React.useRef<number[]>(accentLevels);
   React.useEffect(() => {
@@ -28,35 +30,36 @@ function useMetronome(bpm: number, numerator: number, denominator: number) {
     const secPerStep = (60.0 / bpm) * (4 / denominator) / stepsPerDenominatorUnit;
     setSecondsPerStep(secPerStep);
     // Default accents: quarters in 4/4 (every 4 steps), compound in 12/8 (every 3 steps), else bar start
-    const base = Array.from({ length: totalSteps }, () => 0);
+    const base = Array.from({ length: totalSteps }, () => 0); // silent by default
     if (denominator === 4) {
-      for (let i = 0; i < totalSteps; i += 4) base[i] = 1;
+      for (let i = 0; i < totalSteps; i += 4) base[i] = 2;
     } else if (denominator === 8 && numerator % 3 === 1) {
       // uncommon, fallback to start only
-      base[0] = 1;
+      base[0] = 2;
     } else if (denominator === 8 && numerator % 3 === 0) {
-      for (let i = 0; i < totalSteps; i += 3) base[i] = 1;
+      for (let i = 0; i < totalSteps; i += 3) base[i] = 2;
     } else if (denominator === 16) {
       // try to accent quarters where possible (every 4 steps)
-      for (let i = 0; i < totalSteps; i += 4) base[i] = 1;
+      for (let i = 0; i < totalSteps; i += 4) base[i] = 2;
     } else {
-      base[0] = 1;
+      base[0] = 2;
     }
     setAccentLevels(base);
     setCurrentBeat(0);
   }, [bpm, numerator, denominator]);
   const beatIndexRef = React.useRef<number>(0);
 
-  const scheduleClick = React.useCallback((time: number, intensity: 0 | 1 | 2) => {
+  const scheduleClick = React.useCallback((time: number, intensity: number) => {
     const ctx = audioContextRef.current;
     if (!ctx) return;
+    if (intensity === 0) return; // silent
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
-    const freq = intensity === 2 ? 1700 : intensity === 1 ? 1350 : 1100;
+    const freq = intensity >= 3 ? 1700 : intensity === 2 ? 1350 : 1100;
     const duration = 0.035;
     osc.type = 'square';
     osc.frequency.setValueAtTime(freq, time);
-    const startGain = intensity === 2 ? 0.24 : intensity === 1 ? 0.16 : 0.11;
+    const startGain = intensity >= 3 ? 0.24 : intensity === 2 ? 0.16 : 0.11;
     gain.gain.setValueAtTime(startGain, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
     osc.connect(gain).connect(ctx.destination);
@@ -75,7 +78,7 @@ function useMetronome(bpm: number, numerator: number, denominator: number) {
     const scheduleAheadTime = 0.05;
     while (nextNoteTimeRef.current < ctx.currentTime + scheduleAheadTime) {
       const beatIndex = beatIndexRef.current % beatsPerBar;
-      const intensity = (accentLevelsRef.current[beatIndex] ?? 0) as 0 | 1 | 2;
+      const intensity = (accentLevelsRef.current[beatIndex] ?? 0);
       const playTime = nextNoteTimeRef.current;
       scheduleClick(playTime, intensity);
       const delayMs = Math.max(0, (playTime - ctx.currentTime) * 1000);
@@ -152,24 +155,20 @@ function useMetronome(bpm: number, numerator: number, denominator: number) {
 export default function Metronome({ bpm }: { bpm?: number }) {
   const { bpm: projectBpm, numerator, denominator } = useProjectTiming();
   const { isRunning, beatsPerBar, currentBeat, start, stop, accentLevels, setAccentLevels } = useMetronome(projectBpm || bpm || 120, numerator, denominator);
+  const transport = useTransportOptional();
+
+  // Sync with global transport
+  React.useEffect(() => {
+    if (!transport) return;
+    if (transport.isPlaying && !isRunning) start();
+    if (!transport.isPlaying && isRunning) stop();
+  }, [transport?.isPlaying, isRunning, start, stop, transport]);
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-sm uppercase tracking-widest text-white/60">Widget</div>
-          <h3 className="text-lg font-semibold">Metronome</h3>
-          <div className="mt-1 text-xs text-white/60">Time {numerator}/{denominator} • Tempo {Math.round(projectBpm || bpm || 120)} BPM</div>
-        </div>
-        <button
-          onClick={isRunning ? stop : start}
-          className={`inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium transition ${
-            isRunning
-              ? 'bg-emerald-500/90 text-white hover:bg-emerald-500'
-              : 'bg-fuchsia-600 text-white hover:bg-fuchsia-500'
-          }`}
-        >
-          {isRunning ? 'Stop' : 'Start'}
-        </button>
+      <div className="mb-4">
+        <div className="text-sm uppercase tracking-widest text-white/60">Widget</div>
+        <h3 className="text-lg font-semibold">Metronome</h3>
+        <div className="mt-1 text-xs text-white/60">Time {numerator}/{denominator} • Tempo {Math.round(projectBpm || bpm || 120)} BPM</div>
       </div>
 
       <AccentPresets onApply={setAccentLevels} steps={beatsPerBar} numerator={numerator} denominator={denominator} />
@@ -196,7 +195,7 @@ type BeatAccentsProps = {
 function BeatAccents({ beatsPerBar, currentBeat, levels, onChange }: BeatAccentsProps) {
   const cycle = (index: number) => {
     const next = [...levels];
-    next[index] = ((next[index] ?? 0) + 1) % 3;
+    next[index] = ((next[index] ?? 0) + 1) % 4; // 0..3
     onChange(next);
   };
 
@@ -205,7 +204,7 @@ function BeatAccents({ beatsPerBar, currentBeat, levels, onChange }: BeatAccents
       {Array.from({ length: beatsPerBar }).map((_, i) => {
         const level = levels[i] ?? 0;
         const isNow = currentBeat % beatsPerBar === i;
-        const bg = level === 2 ? 'bg-white' : level === 1 ? 'bg-cyan-400/80' : 'bg-white/20';
+        const bg = level >= 3 ? 'bg-white' : level === 2 ? 'bg-cyan-400/80' : level === 1 ? 'bg-white/30' : 'bg-white/10';
         const ring = isNow ? 'ring-2 ring-white/80' : '';
         return (
           <button
@@ -225,16 +224,20 @@ function Legend() {
   return (
     <div className="mb-3 flex items-center gap-3 text-xs text-white/60">
       <span className="inline-flex items-center gap-2">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-white" />
-        Strong (2)
-      </span>
-      <span className="inline-flex items-center gap-2">
-        <span className="inline-block h-2.5 w-2.5 rounded-full bg-cyan-400/80" />
-        Medium (1)
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-white/10" />
+        Silent (0)
       </span>
       <span className="inline-flex items-center gap-2">
         <span className="inline-block h-2.5 w-2.5 rounded-full bg-white/30" />
-        Subtle (0)
+        Subtle (1)
+      </span>
+      <span className="inline-flex items-center gap-2">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-cyan-400/80" />
+        Medium (2)
+      </span>
+      <span className="inline-flex items-center gap-2">
+        <span className="inline-block h-2.5 w-2.5 rounded-full bg-white" />
+        Strong (3)
       </span>
     </div>
   );
@@ -245,17 +248,17 @@ function AccentPresets({ onApply, steps, numerator, denominator }: { onApply: (l
     const base = Array.from({ length: steps }, () => 0);
     if (key === 'quarters') {
       if (denominator === 4 || denominator === 16) {
-        for (let i = 0; i < steps; i += 4) base[i] = 1;
+        for (let i = 0; i < steps; i += 4) base[i] = 2;
       } else if (denominator === 8 && numerator % 3 === 0) {
-        for (let i = 0; i < steps; i += 3) base[i] = 1;
+        for (let i = 0; i < steps; i += 3) base[i] = 2;
       } else {
-        base[0] = 1;
+        base[0] = 2;
       }
     } else if (key === 'eighths') {
       const interval = denominator === 4 ? 2 : 1;
-      for (let i = 0; i < steps; i += interval) base[i] = 1;
+      for (let i = 0; i < steps; i += interval) base[i] = 2;
     } else if (key === 'bar') {
-      base[0] = 2;
+      base[0] = 3;
     }
     onApply(base);
   };

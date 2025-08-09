@@ -7,6 +7,7 @@ The Builder is the main workspace where you assemble your project from modular w
 - Add widgets via the Add Widget bar.
 - Reorder and remove widgets with inline controls (hover to reveal).
 - Project state (widgets and time signature) persists to localStorage.
+- Global transport controls: Play/Stop in header and Spacebar toggle.
 
 ### Planned
 - Persistence per-widget (e.g., Metronome accent patterns).

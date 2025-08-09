@@ -2,6 +2,7 @@ import React from 'react';
 import Metronome from '../widgets/Metronome';
 import Timing from '../widgets/Timing';
 import { ProjectTimingProvider } from '../../contexts/ProjectTimingContext';
+import { TransportProvider, useTransportOptional } from '../../contexts/TransportContext';
 
 type WidgetType = 'timing' | 'metronome';
 
@@ -61,12 +62,16 @@ export default function Builder() {
   };
 
   return (
-    <ProjectTimingProvider initialBpm={100} initialNumerator={signature.n} initialDenominator={signature.d}>
-      <div className="min-h-screen bg-slate-950 text-white">
+    <TransportProvider>
+      <ProjectTimingProvider initialBpm={100} initialNumerator={signature.n} initialDenominator={signature.d}>
+        <div className="min-h-screen bg-slate-950 text-white">
       <div className="relative mx-auto w-full max-w-7xl px-6 py-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Builder</h1>
-          <p className="text-white/60">Add widgets and shape your project</p>
+        <header className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Builder</h1>
+            <p className="text-white/60">Add widgets and shape your project</p>
+          </div>
+          <GlobalTransportControls />
         </header>
 
         {widgets.length === 0 ? (
@@ -99,9 +104,10 @@ export default function Builder() {
         <div className="mt-8">
           <AddWidgetBar onAdd={(type) => addWidget(type)} hideTiming={hasTiming} />
         </div>
-      </div>
-      </div>
-    </ProjectTimingProvider>
+        </div>
+        </div>
+      </ProjectTimingProvider>
+    </TransportProvider>
   );
 }
 
@@ -125,6 +131,32 @@ function AddWidgetBar({ onAdd, hideTiming }: { onAdd: (type: WidgetType) => void
         Add Metronome
       </button>
     </div>
+  );
+}
+
+function GlobalTransportControls() {
+  const transport = useTransportOptional();
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        transport?.toggle();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [transport]);
+
+  if (!transport) return null;
+  return (
+    <button
+      onClick={() => transport.toggle()}
+      className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
+        transport.isPlaying ? 'bg-emerald-500/90 hover:bg-emerald-500' : 'bg-fuchsia-600 hover:bg-fuchsia-500'
+      }`}
+    >
+      {transport.isPlaying ? 'Stop (Space)' : 'Play (Space)'}
+    </button>
   );
 }
 
